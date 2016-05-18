@@ -71,3 +71,52 @@
 				}
 				break;
   </pre>
+  
+  4.支持转发功能。先看普通AIO页面的转发支持：<br/>
+ <pre>
+  1. 长按进入Chapter1类中的BubbleOnlongClickListener内部类的onLongClick方法。这里设置menu的参数类型：
+     QQCustomMenu menu = new QQCustomMenu();
+	ChatItemBuilder builder = mfactory.findItemBuilder(AIOUtils.getMessage(v), ChatAdapter1.this);
+	QQCustomMenuItem[] menus = builder.getMenuItem(v);
+  2. 进入AIOUtils的getMesssage方法，获得文件的类型、位置等等：
+     BaseHolder holder = (BaseHolder) getHolder(view);//返回FileItemBuilder中的Holder内部类。
+  3. 进入ItemBuliderFactory的findItemBuilder方法。其messageType=MASSAGE_TYPE_FILE，返回FileItemBuilder：
+     ChatItemBuilder builder = mfactory.findItemBuilder(AIOUtils.getMessage(v), ChatAdapter1.this);
+  4. 利用FileItemBuilder的getMenuItem方法，返回QQCustomMenuItem。这里会添加"下载"/"转发"等功能：
+        public final static  int	CLOUD_TYPE_UNKNOW 	= -1;	//默认
+	public final static  int	CLOUD_TYPE_ONLINE	= 0;	//在线文件
+	public final static  int	CLOUD_TYPE_OFFLINE	= 1;	//离线文件
+	public final static  int	CLOUD_TYPE_WEIYUN	= 2;	//微云文件
+	public final static  int	CLOUD_TYPE_LOCAL	= 3;	//本地文件
+     其中只要不是在线文件，就可以有"转发"功能。
+ 5. 将生成的menu设置成BubbleContextMenu，再设置OnDismiss监听：
+    bubbleContextMenu.setOnDismissListener(this);
+ 6. 点击menu项，进入FileItemBuilder的onMenuItemClicked方法。如点击"转发"则进入R.id.forward_file。
+ 7. 转发进入ForwardRecentActivity中，调用方式doOnCreate-->doOnCreate_init-->initViews-->addSmartDeviceEntry，添加智能设备。
+ 8. addSmartDeviceEntry方法调用以下语句，得到DeviceInfo[]相关信息：
+    SmartDeviceProxyMgr devhandle = (SmartDeviceProxyMgr)app.getBusinessHandler(QQAppInterface.DEVICEPROXYMGR_HANDLER);
+ 9. 得到所有的DeviceInfo之后，会调用ForwardPhotoOption的getAllowedDevices方法，先筛选出部分设备：
+  product.isSupportFuncMsgType(ProductInfo.SupportFuncType_Pic) && isSupportAbility(FORWARD_ABILITY_TYPE_SMARTDEVICE)
+10. 先看isSupportFuncMsgType方法，就是SupportFuncType_Pic即1和supportFuncMsgType按位与的结果。
+    其中supportFuncMsgType表示：设备支持的功能消息类型。
+	/**
+	 * 0x01表示图片，0x02表示视频，标志位组合，全部支持表示0x03
+	 */
+    只要supportFuncMsgType==0x01或者0x03，返回结果都是true。
+11. 再看isSupportAbility方法，就是设备是否有转发到智能设备的能力，其中FORWARD_ABILITY_TYPE_SMARTDEVICE=10。(这个判断基本都满足)
+12. 在addSmartDeviceEntry方法的后面，继续筛选设备：
+                                 //过滤掉未确认的共享者
+					if(info.isAdmin == SDKDef.DeviceBinder.Device_Binder_Share) {
+						continue;
+					}
+					//过滤掉云设备
+					if (devhandle.isCloudDevice(info.din)) {
+						continue;
+					}
+
+13.针对不能转发文件，主要是在ForwardFileOption中mForwardAbilities没有执行下面语句：
+    mForwardAbilities.add(FORWARD_ABILITY_TYPE_SMARTDEVICE);
+    使得addSmartDeviceEntry方法无法进入
+
+    
+ </pre>
