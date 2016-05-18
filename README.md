@@ -25,6 +25,8 @@
 	这里是不改变后台代码的运行结果：<br/>
 	<pre>
 	1.TencentIMEngine.OnPrintJobNotify方法返回：Bundle[{strJobId=, nType=1, uDin=800331}]
+	2.编辑AndroidSDK时，默认是增量编译，需要删除jni/obj文件夹，然后ant编译生成libtxdevicesdk.so文件夹。
+	3.放到QQLite\plugin_native_lib中后，要全量编译。
 	</pre>
 
 2.修改打印机状态，使其不显示"在线"和"离线"状态。具体步骤如下：<br/>
